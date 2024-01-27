@@ -1,29 +1,3 @@
-<div align="center">
-<img src="https://raw.githubusercontent.com/opencanarias/public-resources/master/images/taple-logo-readme.png">
-</div>
+# Kore Ledger Contract SDK
 
-# TAPLE Rust Smart Contract SDK
-TAPLE (pronounced T+🍎 ['tapəl]) stands for Tracking (Autonomous) of Provenance and Lifecycle Events. TAPLE is a permissioned DLT solution for traceability of assets and processes. It is:
-
-- **Scalable**: Scaling to a sufficient level for traceability use cases. 
-- **Light**: Designed to support resource constrained devices.
-- **Flexible**: Have a flexible and adaptable cryptographic scheme mechanism for a multitude of scenarios.
-- **Energy-efficient**: Rust powered, TAPLE is sustainable and efficient from the point of view of energy consumption.
-
-This project includes the SDK to be included during the development of smart contracts for TAPLE.
-
-[![AGPL licensed][agpl-badge]][agpl-url]
-
-[agpl-badge]: https://img.shields.io/badge/license-AGPL-blue.svg
-[agpl-url]: https://github.com/opencanarias/taple-core/blob/master/LICENSE
-
-[Discover](https://www.taple.es/docs/discover) | [Learn](https://www.taple.es/docs/learn) | [Build](https://www.taple.es/docs/build) | 
-[Code](https://github.com/search?q=topic%3Ataple+org%3Aopencanarias++fork%3Afalse+archived%3Afalse++is%3Apublic&type=repositories)
-
-## Usage
-Minimium supported rust versión (MSRV) is 1.67.
-
-Refer to our [tutorials](https://www.taple.es/docs/build) to learn more about how to develop and deploy smart contracts in TAPLE.
-
-## License
-This project is licensed under the [AGPL license](./LICENSE).
+This repository contains the **Kore Ledger Contract SDK** (Software Development Kit). It is a library that must be used to build the logic that directs the life cycle of the **subjects** through the events that modify said life cycle. Consequently, we can say that a **subject schema** always has an associated **contract** that regulates how it evolves. The specification of both is done in **governance**.

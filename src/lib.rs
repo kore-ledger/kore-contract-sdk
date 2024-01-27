@@ -1,3 +1,6 @@
+// Copyright 2024 Antonio Estévez
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 mod error;
 mod externf;
 mod value_wrapper;
@@ -9,27 +12,40 @@ use serde_json::Value;
 
 pub use self::value_wrapper::ValueWrapper;
 
+/// Contrat execution context.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Context<State, Event> {
+    /// Initial state of the contract
     pub initial_state: State,
+    /// Event that triggered the contract execution
     pub event: Event,
+    /// Is the sender of the event the owner of the contract
     pub is_owner: bool,
 }
 
+/// Contract execution result.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ContractResult<State> {
+    /// Final state of the contract.
     pub final_state: State,
+    /// Is approval required for the contract to be valid?
     pub approval_required: bool,
+    /// Is the contract execution successful?
     pub success: bool,
 }
 
+/// Internal contract execution result used for borsh serialization.
 #[derive(BorshSerialize)]
 struct ContractResultBorsh {
+    /// Final state of the contract.
     pub final_state: ValueWrapper,
+    /// Is approval required for the contract to be valid?
     pub approval_required: bool,
+    /// Is the contract execution successful?
     pub success: bool,
 }
 
+/// Internal contract execution result implementation for errors.
 impl ContractResultBorsh {
     pub fn error() -> Self {
         Self {
@@ -40,6 +56,7 @@ impl ContractResultBorsh {
     }
 }
 
+/// Internal contract execution result implementation for building results.
 impl<State> ContractResult<State> {
     pub fn new(state: State) -> Self {
         Self {
@@ -50,6 +67,19 @@ impl<State> ContractResult<State> {
     }
 }
 
+/// Contract execution.
+///
+/// # Arguments
+///
+/// * `state_ptr` - Pointer to the initial state of the contract.
+/// * `event_ptr` - Pointer to the event that triggered the contract execution.
+/// * `is_owner` - Is the sender of the event the owner of the contract?
+/// * `callback` - Callback that will be executed with the contract contract logic.
+///
+/// # Returns
+///
+/// * `result_ptr` - Pointer to the contract execution result.
+///
 pub fn execute_contract<F, State, Event>(
     state_ptr: i32,
     event_ptr: i32,
@@ -94,7 +124,7 @@ where
             // Después de haber sido modificado debemos guardar el nuevo estado.
             // Sería interesante no tener que guardar estado si el evento no es modificante
             let Ok(result_ptr) = store(&result) else {
-              break 'process;
+                break 'process;
             };
             return result_ptr;
         };
@@ -108,7 +138,7 @@ fn deserialize(bytes: Vec<u8>) -> Result<ValueWrapper, Error> {
 }
 
 fn serialize<S: BorshSerialize>(data: S) -> Result<Vec<u8>, Error> {
-    data.try_to_vec().map_err(|_| Error::SerializationError)
+    borsh::to_vec(&data).map_err(|_| Error::SerializationError)
 }
 
 fn get_from_context(pointer: i32) -> Vec<u8> {
@@ -142,4 +172,8 @@ fn store(data: &ContractResultBorsh) -> Result<u32, Error> {
         }
         Ok(ptr)
     }
+}
+
+#[cfg(test)]
+mod tests {
 }
