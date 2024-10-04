@@ -1,4 +1,4 @@
-// Copyright 2024 Antonio Estévez
+// Copyright 2024 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 mod error;
@@ -28,8 +28,6 @@ pub struct Context<State, Event> {
 pub struct ContractResult<State> {
     /// Final state of the contract.
     pub final_state: State,
-    /// Is approval required for the contract to be valid?
-    pub approval_required: bool,
     /// Is the contract execution successful?
     pub success: bool,
 }
@@ -39,8 +37,6 @@ pub struct ContractResult<State> {
 struct ContractResultBorsh {
     /// Final state of the contract.
     pub final_state: ValueWrapper,
-    /// Is approval required for the contract to be valid?
-    pub approval_required: bool,
     /// Is the contract execution successful?
     pub success: bool,
 }
@@ -50,7 +46,6 @@ impl ContractResultBorsh {
     pub fn error() -> Self {
         Self {
             final_state: ValueWrapper(serde_json::Value::Null),
-            approval_required: false,
             success: false,
         }
     }
@@ -61,7 +56,6 @@ impl<State> ContractResult<State> {
     pub fn new(state: State) -> Self {
         Self {
             final_state: state,
-            approval_required: false,
             success: false,
         }
     }
@@ -118,7 +112,6 @@ where
             };
             let result = ContractResultBorsh {
                 final_state: ValueWrapper(state_value),
-                approval_required: contract_result.approval_required,
                 success: contract_result.success,
             };
             // Después de haber sido modificado debemos guardar el nuevo estado.
