@@ -45,7 +45,6 @@ fn contract_logic(
       }
   }
   contract_result.success = true;
-  contract_result.approval_required = true;
 }
 
 #[test]
@@ -64,5 +63,4 @@ fn contract_test() {
   contract_logic(&context, &mut result);
   assert_eq!(result.final_state.one, 100);
   assert!(result.success);
-  assert!(result.approval_required);
 }
