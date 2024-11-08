@@ -32,6 +32,13 @@ pub struct ContractResult<State> {
     pub success: bool,
 }
 
+/// Contract init result.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ContractInitCheck {
+    /// Is the contract init successful?
+    pub success: bool,
+}
+
 /// Internal contract execution result used for borsh serialization.
 #[derive(BorshSerialize)]
 struct ContractResultBorsh {
@@ -51,6 +58,28 @@ impl ContractResultBorsh {
     }
 }
 
+/// Internal contract execution result used for borsh serialization.
+#[derive(BorshSerialize)]
+struct ContractInitCheckBorsh {
+    /// Is the contract execution successful?
+    pub success: bool,
+}
+
+/// Internal contract execution result implementation for errors.
+impl ContractInitCheckBorsh {
+    pub fn error() -> Self {
+        Self {
+            success: false,
+        }
+    }
+
+    pub fn ok() -> Self {
+        Self {
+            success: true,
+        }
+    }
+}
+
 /// Internal contract execution result implementation for building results.
 impl<State> ContractResult<State> {
     pub fn new(state: State) -> Self {
@@ -66,9 +95,52 @@ impl<State> ContractResult<State> {
 /// # Arguments
 ///
 /// * `state_ptr` - Pointer to the initial state of the contract.
+/// * `callback` - Callback that will be executed with the init contract logic.
+///
+/// # Returns
+///
+/// * `result_ptr` - Pointer to the init contract execution result.
+///
+pub fn check_init_data<State, F>(
+    state_ptr: i32,
+    callback: F,
+) -> u32 
+where
+    State: for<'a> Deserialize<'a> + Serialize + Clone,
+    F: Fn(&State, &mut ContractInitCheck),
+{
+    {
+        'process: {
+            let Ok(state_value) = deserialize(get_from_context(state_ptr)) else {
+                break 'process;
+            };
+            let Ok(state) = serde_json::from_value::<State>(state_value.0) else {
+                break 'process;
+            };
+            let mut contract_result = ContractInitCheck {success: false};
+            callback(&state, &mut contract_result);
+
+            if !contract_result.success {
+                break 'process;
+            }
+
+            let Ok(result_ptr) = store(&ContractInitCheckBorsh::ok()) else {
+                break 'process;
+            };
+            return result_ptr;
+        }
+        store(&ContractInitCheckBorsh::error()).expect("Contract store process failed")
+    }
+}
+
+/// Contract execution.
+///
+/// # Arguments
+///
+/// * `state_ptr` - Pointer to the initial state of the contract.
 /// * `event_ptr` - Pointer to the event that triggered the contract execution.
 /// * `is_owner` - Is the sender of the event the owner of the contract?
-/// * `callback` - Callback that will be executed with the contract contract logic.
+/// * `callback` - Callback that will be executed with the contract logic.
 ///
 /// # Returns
 ///
@@ -121,8 +193,7 @@ where
             };
             return result_ptr;
         };
-        let result = ContractResultBorsh::error();
-        store(&result).expect("Contract store process failed")
+        store(&ContractResultBorsh::error()).expect("Contract store process failed")
     }
 }
 
@@ -156,7 +227,12 @@ pub fn apply_patch<State: for<'a> Deserialize<'a> + Serialize>(
     Ok(serde_json::from_value(state).unwrap())
 }
 
-fn store(data: &ContractResultBorsh) -> Result<u32, Error> {
+
+
+fn store<S>(data: &S) -> Result<u32, Error>
+where 
+    S: BorshSerialize
+{
     let bytes = serialize(&data).map_err(|_| Error::SerializationError)?;
     unsafe {
         let ptr = externf::alloc(bytes.len() as u32) as u32;
