@@ -30,13 +30,17 @@ pub struct ContractResult<State> {
     pub final_state: State,
     /// Is the contract execution successful?
     pub success: bool,
+    /// Contract error
+    pub error: String
 }
 
 /// Contract init result.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ContractInitCheck {
     /// Is the contract init successful?
     pub success: bool,
+    /// Contract error
+    pub error: String,
 }
 
 /// Internal contract execution result used for borsh serialization.
@@ -46,14 +50,17 @@ struct ContractResultBorsh {
     pub final_state: ValueWrapper,
     /// Is the contract execution successful?
     pub success: bool,
+    /// Contract error
+    pub error: String
 }
 
 /// Internal contract execution result implementation for errors.
 impl ContractResultBorsh {
-    pub fn error() -> Self {
+    pub fn error(error: &str) -> Self {
         Self {
             final_state: ValueWrapper(serde_json::Value::Null),
             success: false,
+            error: error.to_owned()
         }
     }
 }
@@ -63,19 +70,23 @@ impl ContractResultBorsh {
 struct ContractInitCheckBorsh {
     /// Is the contract execution successful?
     pub success: bool,
+    /// Contract error
+    pub error: String
 }
 
 /// Internal contract execution result implementation for errors.
 impl ContractInitCheckBorsh {
-    pub fn error() -> Self {
+    pub fn error(error: &str) -> Self {
         Self {
             success: false,
+            error: error.to_owned()
         }
     }
 
     pub fn ok() -> Self {
         Self {
             success: true,
+            error: String::default()
         }
     }
 }
@@ -86,6 +97,7 @@ impl<State> ContractResult<State> {
         Self {
             final_state: state,
             success: false,
+            error: String::default()
         }
     }
 }
@@ -110,26 +122,31 @@ where
     F: Fn(&State, &mut ContractInitCheck),
 {
     {
+        let error: String;
         'process: {
             let Ok(state_value) = deserialize(get_from_context(state_ptr)) else {
+                error = "Can not deserialize State".to_owned();
                 break 'process;
             };
             let Ok(state) = serde_json::from_value::<State>(state_value.0) else {
+                error = "Can not convert State from value".to_owned();
                 break 'process;
             };
-            let mut contract_result = ContractInitCheck {success: false};
+            let mut contract_result = ContractInitCheck::default();
             callback(&state, &mut contract_result);
 
             if !contract_result.success {
+                error = format!("Error running init contract data: {}", contract_result.error);
                 break 'process;
             }
 
             let Ok(result_ptr) = store(&ContractInitCheckBorsh::ok()) else {
+                error = "Can not return init contract result".to_owned();
                 break 'process;
             };
             return result_ptr;
         }
-        store(&ContractInitCheckBorsh::error()).expect("Contract store process failed")
+        store(&ContractInitCheckBorsh::error(&error)).expect("Contract store process failed")
     }
 }
 
@@ -158,42 +175,50 @@ where
     F: Fn(&Context<State, Event>, &mut ContractResult<State>),
 {
     {
+        let error: String;
         'process: {
             let Ok(state_value) = deserialize(get_from_context(state_ptr)) else {
+                error = "Can not deserialize State".to_owned();
                 break 'process;
             };
             let Ok(state) = serde_json::from_value::<State>(state_value.0) else {
+                error = "Can not convert State from value".to_owned();
                 break 'process;
             };
             let Ok(event_value) = deserialize(get_from_context(event_ptr)) else {
+                error = "Can not deserialize Event".to_owned();
                 break 'process;
             };
             let Ok(event) = serde_json::from_value::<Event>(event_value.0) else {
+                error = "Can not convert Event from value".to_owned();
                 break 'process;
             };
             let is_owner = if is_owner == 1 { true } else { false };
             let context = Context {
                 initial_state: state.clone(),
                 event,
-                is_owner,
+                is_owner
             };
             let mut contract_result = ContractResult::new(state);
             callback(&context, &mut contract_result);
             let Ok(state_value) = serde_json::to_value(&contract_result.final_state) else {
+                error = "Can not convert contract final state into Value".to_owned();
                 break 'process;
             };
             let result = ContractResultBorsh {
                 final_state: ValueWrapper(state_value),
                 success: contract_result.success,
+                error: format!("Error running contract event: {}", contract_result.error)
             };
             // Después de haber sido modificado debemos guardar el nuevo estado.
             // Sería interesante no tener que guardar estado si el evento no es modificante
             let Ok(result_ptr) = store(&result) else {
+                error = "Can not return contract result".to_owned();
                 break 'process;
             };
             return result_ptr;
         };
-        store(&ContractResultBorsh::error()).expect("Contract store process failed")
+        store(&ContractResultBorsh::error(&error)).expect("Contract store process failed")
     }
 }
 

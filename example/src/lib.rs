@@ -48,6 +48,11 @@ fn contract_logic(
         state.two = data;
       },
       StateEvent::ModThree { data } => {
+        if data == 50 {
+          contract_result.error = "Can not change three value, 50 is a invalid value".to_owned();
+          return
+        }
+        
         state.three = data;
       },
       StateEvent::ModAll { one, two, three } => {
@@ -75,4 +80,23 @@ fn contract_test() {
   contract_logic(&context, &mut result);
   assert_eq!(result.final_state.one, 100);
   assert!(result.success);
+}
+
+#[test]
+fn contract_test_fail() {
+  let initial_state = State {
+    one: 1,
+    two: 2,
+    three: 3
+  };
+  let context = sdk::Context {
+    initial_state: initial_state.clone(),
+    event: StateEvent::ModThree { data: 50 },
+    is_owner: false
+  };
+  let mut result = sdk::ContractResult::new(initial_state);
+  contract_logic(&context, &mut result);
+  assert_eq!(result.final_state.three, 3);
+  assert_eq!(result.error, "Can not change three value, 50 is a invalid value");
+  assert!(!result.success);
 }
