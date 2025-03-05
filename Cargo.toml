@@ -10,6 +10,7 @@ repository = "https://github.com/kore-ledger/kore-contract-sdk"
 license = "AGPL-3.0-only"
 keywords = ["blockchain", "distributed-ledger", "kore", "sustainability"]
 rust-version = "1.67"
+documentation = "https://docs.rs/kore-contract-sdk"
 
 [dependencies]
 serde = { version = "1.0.218", features = ["derive"] }
