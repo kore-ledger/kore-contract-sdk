@@ -1,7 +1,8 @@
 [package]
 name = "example"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
+publish = false
 authors = ["Kore Ledger, SL<dev@kore-ledger.net>"]
 description = "Kore Ledger contract example"
 homepage = "https://kore-ledger.net"
@@ -10,5 +11,5 @@ license = "AGPL-3.0-only"
 keywords = ["blockchain", "distributed-ledger", "taple", "sustainability"]
 
 [dependencies]
-serde = { version = "1.0.152", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 kore-contract-sdk = { path = "../" }

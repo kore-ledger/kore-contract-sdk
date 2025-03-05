@@ -1,4 +1,4 @@
-// Copyright 2024 Kore Ledger
+// Copyright 2025 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 mod error;
@@ -6,9 +6,7 @@ mod externf;
 mod value_wrapper;
 use borsh::{BorshDeserialize, BorshSerialize};
 use error::Error;
-use json_patch::{patch, Patch};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 pub use self::value_wrapper::ValueWrapper;
 
@@ -223,11 +221,11 @@ where
 }
 
 fn deserialize(bytes: Vec<u8>) -> Result<ValueWrapper, Error> {
-    BorshDeserialize::try_from_slice(&bytes).map_err(|_| Error::DeserializationError)
+    BorshDeserialize::try_from_slice(&bytes).map_err(|e| Error::Deserialization(e.to_string()))
 }
 
 fn serialize<S: BorshSerialize>(data: S) -> Result<Vec<u8>, Error> {
-    borsh::to_vec(&data).map_err(|_| Error::SerializationError)
+    borsh::to_vec(&data).map_err(|e| Error::Serialization(e.to_string()))
 }
 
 fn get_from_context(pointer: i32) -> Vec<u8> {
@@ -242,23 +240,11 @@ fn get_from_context(pointer: i32) -> Vec<u8> {
     data
 }
 
-pub fn apply_patch<State: for<'a> Deserialize<'a> + Serialize>(
-    patch_arg: Value,
-    state: &State,
-) -> Result<State, i32> {
-    let patch_data: Patch = serde_json::from_value(patch_arg).unwrap();
-    let mut state = serde_json::to_value(state).unwrap();
-    patch(&mut state, &patch_data).unwrap();
-    Ok(serde_json::from_value(state).unwrap())
-}
-
-
-
 fn store<S>(data: &S) -> Result<u32, Error>
 where 
     S: BorshSerialize
 {
-    let bytes = serialize(&data).map_err(|_| Error::SerializationError)?;
+    let bytes = serialize(&data).map_err(|e| Error::Serialization(e.to_string()))?;
     unsafe {
         let ptr = externf::alloc(bytes.len() as u32) as u32;
         for (index, byte) in bytes.into_iter().enumerate() {
