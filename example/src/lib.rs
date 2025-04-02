@@ -17,12 +17,12 @@ enum StateEvent {
   ModAll { one: u32, two: u32, three: u32 }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe fn main_function(state_ptr: i32, event_ptr: i32, is_owner: i32) -> u32 {
   sdk::execute_contract(state_ptr, event_ptr, is_owner, contract_logic)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe fn init_check_function(state_ptr: i32) -> u32 {
   sdk::check_init_data(state_ptr, init_logic)
 }

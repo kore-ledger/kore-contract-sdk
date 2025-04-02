@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // Extern functions for the wasm module.
-extern "C" {
+unsafe extern "C" {
     // Host functions
     // Read the byte from the context indicated by the pointer
     pub(crate) fn read_byte(pointer: i32) -> u8;
