@@ -163,6 +163,7 @@ where
 ///
 pub fn execute_contract<F, State, Event>(
     state_ptr: i32,
+    init_state_ptr: i32,
     event_ptr: i32,
     is_owner: i32,
     callback: F,
@@ -179,9 +180,21 @@ where
                 error = "Can not deserialize State".to_owned();
                 break 'process;
             };
-            let Ok(state) = serde_json::from_value::<State>(state_value.0) else {
-                error = "Can not convert State from value".to_owned();
-                break 'process;
+            let state = match serde_json::from_value::<State>(state_value.0) {
+                Ok(state) => state,
+                Err(_) => {
+                    let Ok(init_state) = deserialize(get_from_context(init_state_ptr)) else {
+                        error = "Can not deserialize Init State".to_owned();
+                        break 'process;
+                    };
+
+                    let Ok(init_state) = serde_json::from_value::<State>(init_state.0) else {
+                        error = "Can not convert State from value".to_owned();
+                        break 'process;
+                    };
+
+                    init_state
+                }
             };
             let Ok(event_value) = deserialize(get_from_context(event_ptr)) else {
                 error = "Can not deserialize Event".to_owned();
